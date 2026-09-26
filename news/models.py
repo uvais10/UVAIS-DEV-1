@@ -85,3 +85,23 @@ class DiscoveredArticle(models.Model):
 
     def __str__(self) -> str:
         return self.title[:80]
+
+    
+
+class CrawlRun(models.Model):
+    """One row per crawl run - the crawler's diary."""
+
+    source = models.ForeignKey(NewsSource, on_delete=models.CASCADE, related_name="crawl_runs")
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    success = models.BooleanField(default=True)
+    found = models.PositiveIntegerField(default=0)
+    new = models.PositiveIntegerField(default=0)
+    duplicates = models.PositiveIntegerField(default=0)
+    error_detail = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self) -> str:
+        return f"{self.source.name} - {self.started_at:%d %b %Y, %H:%M}"

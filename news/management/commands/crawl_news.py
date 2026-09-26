@@ -1,12 +1,16 @@
+import re
 import xml.etree.ElementTree as ET
+from urllib import robotparser
+from urllib.parse import urljoin
 
-import requests,re
+import requests
 from django.core.management.base import BaseCommand
+from django.db import IntegrityError
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
-from django.db import IntegrityError
 
-from news.models import DiscoveredArticle, NewsSource, TouristAttraction
+from news.models import CrawlRun, DiscoveredArticle, NewsSource, TouristAttraction
 
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 NEWS_NS = "http://www.google.com/schemas/sitemap-news/0.9"
@@ -19,12 +23,25 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         for source in NewsSource.objects.filter(is_active=True):
             self.stdout.write(f"Crawling {source.name}...")
-            self.crawl_source(source)
+            run = CrawlRun.objects.create(source=source)
+            try:
+                run.found, run.new, run.duplicates = self.crawl_source(source)
+            except Exception as error:
+                run.success = False
+                run.error_detail = str(error)
+                self.stderr.write(f"  FAILED: {error}")
+            run.finished_at = timezone.now()
+            run.save()
+            source.last_crawled_at = run.started_at
+            source.save()
 
     def crawl_source(self, source):
         if not source.sitemap_url:
-            self.stdout.write("  no sitemap url - skipping")
-            return
+            return 0, 0, 0
+
+        if not self.robots_allows(source):
+            self.stdout.write("  robots.txt says not allowed - skipping")
+            return 0, 0, 0
 
         try:
             response = requests.get(
@@ -35,7 +52,7 @@ class Command(BaseCommand):
             response.raise_for_status()
         except requests.RequestException as error:
             self.stderr.write(f"  fetch failed: {error}")
-            return
+            raise
 
         root = ET.fromstring(response.content)
         found, new, duplicates = 0, 0, 0
@@ -81,6 +98,23 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"  found={found} new={new} duplicates={duplicates}")
         )
+        return found, new, duplicates
+    @staticmethod
+    def robots_allows(source):
+        if not source.respect_robots_txt:
+            return True
+        try:
+            response = requests.get(
+                urljoin(source.base_url, "/robots.txt"),
+                timeout=30,
+                headers={"User-Agent": USER_AGENT},
+            )
+            response.raise_for_status()
+        except requests.RequestException:
+            return False
+        parser = robotparser.RobotFileParser()
+        parser.parse(response.text.splitlines())
+        return parser.can_fetch(USER_AGENT, source.sitemap_url)
 
     @staticmethod
     def find_matches(title):
@@ -92,4 +126,3 @@ class Command(BaseCommand):
                     matched.append(attraction)
                     break
         return matched
-
