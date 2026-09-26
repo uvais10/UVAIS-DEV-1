@@ -79,6 +79,7 @@ body::before {
   color: var(--ink-soft);
 }
 
+
 /* ---------- the sheet continues ---------- */
 main {
   background: var(--paper);
@@ -160,4 +161,34 @@ main::after {
   text-align: center;
   margin-top: 60px;
   color: var(--ink-soft);
+}
+
+
+/* ---------- attraction filter pills ---------- */
+.attraction-filters {
+    text-align: center;
+    margin: 0 0 28px;
+}
+
+.attraction-filters a {
+    display: inline-block;
+    margin: 4px;
+    padding: 6px 16px;
+    border: 1px solid var(--rule);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.attraction-filters a:hover {
+    background: #ebe1c2;
+    color: var(--ink);
+}
+
+.attraction-filters a.active {
+    background: var(--ink);
+    color: var(--paper);
 }

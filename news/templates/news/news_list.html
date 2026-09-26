@@ -4,11 +4,22 @@
 
 {% block content %}
 <h2>Latest Kerala Travel News</h2>
+
+<div class="attraction-filters">
+    <a href="{% url 'news:news_list' %}" class="{% if not selected %}active{% endif %}">All</a>
+    {% for attraction in attractions %}
+        <a href="{% url 'news:news_by_attraction' attraction.slug %}"
+           class="{% if selected and selected.slug == attraction.slug %}active{% endif %}">
+            {{ attraction.name }}
+        </a>
+    {% endfor %}
+</div>
+
 <ul class="article-list">
     {% for article in articles %}
         <li><a href="{% url 'news:news_detail' article.slug %}">{{ article.title }}</a></li>
     {% empty %}
-        <li>No articles yet.</li>
+        <li>No news for this place yet.</li>
     {% endfor %}
 </ul>
 {% endblock %}

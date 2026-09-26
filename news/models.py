@@ -5,6 +5,8 @@ class TouristAttraction(models.Model):
     """One Kerala tourist attraction the crawler watches for."""
 
     name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True, default="")
+
     aliases = models.TextField(
         blank=True,
         help_text="Comma-separated alternative names, e.g. 'Alleppey, Alappuzha Backwaters'",
