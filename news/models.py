@@ -105,3 +105,51 @@ class CrawlRun(models.Model):
 
     def __str__(self) -> str:
         return f"{self.source.name} - {self.started_at:%d %b %Y, %H:%M}"
+class ArticleClassification(models.Model):
+    """The LLM's verdict on one DiscoveredArticle."""
+
+    class Verdict(models.TextChoices):
+        POSITIVE = "positive", "Positive"
+        NEGATIVE = "negative", "Negative"
+        NEUTRAL = "neutral", "Neutral / irrelevant"
+
+    article = models.OneToOneField(DiscoveredArticle, on_delete=models.CASCADE, related_name="classification")
+    verdict = models.CharField(max_length=20, choices=Verdict.choices)
+    confidence_score = models.FloatField(help_text="0.0 - 1.0")
+    identified_attraction = models.ForeignKey(
+        TouristAttraction, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="classifications",
+    )
+    reason = models.TextField()
+    raw_llm_response = models.JSONField(default=dict, blank=True)
+    model_name = models.CharField(max_length=100, blank=True)
+    classified_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"article {self.article_id} -> {self.verdict} ({self.confidence_score:.2f})"
+
+
+class GeneratedNews(models.Model):
+    """AI-written, original Tripzido article, ready for publishing."""
+
+    article = models.OneToOneField(DiscoveredArticle, on_delete=models.CASCADE, related_name="generated_news")
+    attraction = models.ForeignKey(
+        TouristAttraction, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="news_items",
+    )
+    title = models.CharField(max_length=300)
+    slug = models.SlugField(max_length=320, unique=True, blank=True)
+    summary = models.TextField()
+    content = models.TextField(help_text="Full article body, HTML paragraphs")
+    image_url = models.URLField(blank=True)
+
+    source_name = models.CharField(max_length=200, blank=True)
+    source_url = models.URLField(blank=True)
+    source_published_at = models.DateTimeField(null=True, blank=True)
+
+    is_published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return self.title

@@ -14,7 +14,7 @@ from news.models import CrawlRun, DiscoveredArticle, NewsSource, TouristAttracti
 
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 NEWS_NS = "http://www.google.com/schemas/sitemap-news/0.9"
-USER_AGENT = "TripzidoPracticeBot/1.0 (learning project)"
+USER_AGENT = "TripzidoBot/1.0" 
 
 
 class Command(BaseCommand):
