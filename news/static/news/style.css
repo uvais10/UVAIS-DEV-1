@@ -191,3 +191,24 @@ main::after {
     background: var(--ink);
     color: var(--paper);
 }
+/* ---------- pagination ---------- */
+.pagination {
+    margin-top: 40px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 13px;
+}
+
+.pagination a,
+.pagination span {
+    border: 1px solid var(--rule);
+    padding: 6px 14px;
+    margin: 0 4px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.pagination a:hover {
+    background: #ebe1c2;
+}
