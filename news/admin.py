@@ -21,7 +21,7 @@ class DiscoveredArticleAdmin(admin.ModelAdmin):
 
 @admin.register(CrawlRun)
 class CrawlRunAdmin(admin.ModelAdmin):
-    list_display = ("source", "started_at", "finished_at", "success", "found", "new", "duplicates")
+    list_display = ("source", "stage" ,"started_at", "finished_at", "success", "found", "new", "duplicates")
     list_filter = ("source", "success")
 
 @admin.register(ArticleClassification)

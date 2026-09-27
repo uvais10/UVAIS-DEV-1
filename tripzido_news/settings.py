@@ -109,7 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'asia/Kolkata'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -130,3 +130,8 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+# The AI brain - placeholder until the server LLM is ready (Phase 2)
+LOCAL_LLM_BASE_URL = "http://localhost:11434"
+LOCAL_LLM_MODEL = "qwen3.5:4b"
+NEWS_AI_CONFIDENCE_THRESHOLD = 0.75
+NEWS_AUTO_PUBLISH = False

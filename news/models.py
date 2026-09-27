@@ -69,6 +69,7 @@ class DiscoveredArticle(models.Model):
         REJECTED_LOW_CONFIDENCE = "rejected_low_confidence", "Rejected - low confidence"
         FAILED = "failed", "Failed"
 
+
     source = models.ForeignKey(NewsSource, on_delete=models.CASCADE, related_name="articles")
     url = models.URLField(max_length=1000, unique=True)
     title = models.CharField(max_length=500)
@@ -79,6 +80,10 @@ class DiscoveredArticle(models.Model):
     matched_attractions = models.ManyToManyField(TouristAttraction, blank=True)
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.DISCOVERED)
     discovered_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.TextField(blank=True)
+    retry_count = models.PositiveIntegerField(default=0)
+
 
     class Meta:
         ordering = ["-discovered_at"]
@@ -90,8 +95,13 @@ class DiscoveredArticle(models.Model):
 
 class CrawlRun(models.Model):
     """One row per crawl run - the crawler's diary."""
+    class Stage(models.TextChoices):
+        CRAWL = "crawl", "Crawl"
+        CLASSIFY = "classify", "Classify"
+        GENERATE = "generate", "Generate"
 
-    source = models.ForeignKey(NewsSource, on_delete=models.CASCADE, related_name="crawl_runs")
+    source = models.ForeignKey(NewsSource, on_delete=models.CASCADE, related_name="crawl_runs", null=True, blank=True)
+    stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.CRAWL)
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     success = models.BooleanField(default=True)
@@ -104,7 +114,9 @@ class CrawlRun(models.Model):
         ordering = ["-started_at"]
 
     def __str__(self) -> str:
-        return f"{self.source.name} - {self.started_at:%d %b %Y, %H:%M}"
+        label = self.source.name if self.source else self.get_stage_display()
+        return f"{label} - {self.started_at:%d %b %Y, %H:%M}"
+
 class ArticleClassification(models.Model):
     """The LLM's verdict on one DiscoveredArticle."""
 
