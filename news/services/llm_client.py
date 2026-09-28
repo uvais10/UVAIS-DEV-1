@@ -10,10 +10,10 @@ class LLMError(RuntimeError):
 
 def call_local_llm(prompt, *, system="", json_mode=True, timeout=600):
     base_url = getattr(settings, "LOCAL_LLM_BASE_URL", "http://localhost:11434")
-    model = getattr(settings, "LOCAL_LLM_MODEL", "qwen3.5:4b")
+    model = getattr(settings, "LOCAL_LLM_MODEL", "llama3.1")
 
     try:
-        payload = {"model": model, "prompt": prompt, "system": system, "stream": False}
+        payload = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
         if json_mode:
             payload["format"] = "json"
         resp = requests.post(f"{base_url}/api/generate", json=payload, timeout=timeout)
@@ -23,7 +23,7 @@ def call_local_llm(prompt, *, system="", json_mode=True, timeout=600):
             if system:
                 messages.append({"role": "system", "content": system})
             messages.append({"role": "user", "content": prompt})
-            chat_payload = {"model": model, "messages": messages, "stream": False}
+            chat_payload = {"model": model, "messages": messages, "stream": False, "think": False}
             if json_mode:
                 chat_payload["format"] = "json"
             resp = requests.post(f"{base_url}/api/chat", json=chat_payload, timeout=timeout)

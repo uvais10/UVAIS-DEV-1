@@ -3,8 +3,23 @@
 {% block title %}{{ article.title }}{% endblock %}
 
 {% block content %}
-<div class="article-detail">
-<h2>{{ article.title }}</h2>
-<p>{{ article.raw_content }}</p>
-</div>
+<article class="article-detail">
+    <h2>{{ article.title }}</h2>
+
+    <p class="article-meta">
+        {% if article.attraction %}{{ article.attraction.name }} &middot;{% endif %}
+        {% if article.source_name %}
+            Source:
+            <a href="{{ article.source_url }}" target="_blank" rel="noopener">{{ article.source_name }}</a>
+        {% endif %}
+    </p>
+
+    {% if article.summary %}
+        <p class="article-summary">{{ article.summary }}</p>
+    {% endif %}
+
+    <div class="article-body">
+        {{ article.content|safe }}
+    </div>
+</article>
 {% endblock %}

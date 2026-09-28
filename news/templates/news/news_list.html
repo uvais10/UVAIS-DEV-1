@@ -17,11 +17,17 @@
 
 <ul class="article-list">
     {% for article in articles %}
-        <li><a href="{% url 'news:news_detail' article.slug %}">{{ article.title }}</a></li>
+        <li>
+            <a href="{% url 'news:news_detail' article.slug %}">{{ article.title }}</a>
+            {% if article.summary %}
+                <p class="article-summary">{{ article.summary|truncatewords:22 }}</p>
+            {% endif %}
+        </li>
     {% empty %}
-        <li>No news for this place yet.</li>
+        <li>No published articles yet - approve a draft in the admin!</li>
     {% endfor %}
 </ul>
+
 {% if page_obj.has_other_pages %}
 <div class="pagination">
     {% if page_obj.has_previous %}
@@ -33,5 +39,4 @@
     {% endif %}
 </div>
 {% endif %}
-
 {% endblock %}

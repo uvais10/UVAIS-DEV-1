@@ -132,6 +132,6 @@ MAILERS = {
 }
 # The AI brain - placeholder until the server LLM is ready (Phase 2)
 LOCAL_LLM_BASE_URL = "http://localhost:11434"
-LOCAL_LLM_MODEL = "qwen3.5:4b"
-NEWS_AI_CONFIDENCE_THRESHOLD = 0.75
+LOCAL_LLM_MODEL = "qwen3.5:2b"
+NEWS_AI_CONFIDENCE_THRESHOLD = 0.5
 NEWS_AUTO_PUBLISH = False
