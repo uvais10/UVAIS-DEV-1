@@ -3,23 +3,46 @@
 {% block title %}{{ article.title }}{% endblock %}
 
 {% block content %}
-<article class="article-detail">
-    <h2>{{ article.title }}</h2>
-
-    <p class="article-meta">
-        {% if article.attraction %}{{ article.attraction.name }} &middot;{% endif %}
-        {% if article.source_name %}
-            Source:
-            <a href="{{ article.source_url }}" target="_blank" rel="noopener">{{ article.source_name }}</a>
+<article class="article-detail clipping sheet">
+    <header class="article-header">
+        {% if article.attraction %}
+        <p class="kicker">
+            <a href="{% url 'news:news_by_attraction' article.attraction.slug %}">{{ article.attraction.name }}</a>
+        </p>
         {% endif %}
-    </p>
+        <h2 class="article-headline">{{ article.title }}</h2>
+        <p class="article-meta">
+            {% if article.created_at %}Filed {{ article.created_at|date:"l, j F Y" }}{% endif %}
+        </p>
+        <div class="header-rules" aria-hidden="true"></div>
+    </header>
 
     {% if article.summary %}
-        <p class="article-summary">{{ article.summary }}</p>
+    <p class="article-standfirst">{{ article.summary }}</p>
+    {% endif %}
+
+    {% if article.image_url %}
+    <figure class="article-photo">
+        <img src="{{ article.image_url }}" alt="">
+    </figure>
     {% endif %}
 
     <div class="article-body">
         {{ article.content|safe }}
     </div>
+
+    {% if article.source_name %}
+    <aside class="source-note">
+        <p class="source-label">From the wire</p>
+        <p>
+            <a href="{{ article.source_url }}" target="_blank" rel="noopener">{{ article.source_name }}</a>
+            {% if article.source_published_at %}
+                &middot; originally published {{ article.source_published_at|date:"j F Y" }}
+            {% endif %}
+        </p>
+    </aside>
+    {% endif %}
+
+    <p class="back-link"><a href="{% url 'news:news_list' %}">&laquo; Back to the front page</a></p>
 </article>
 {% endblock %}

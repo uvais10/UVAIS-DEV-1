@@ -3,40 +3,61 @@
 {% block title %}News{% endblock %}
 
 {% block content %}
-<h2>Latest Kerala Travel News</h2>
+<div class="section-banner">
+    <h2>Latest Kerala Travel News</h2>
+</div>
 
-<div class="attraction-filters">
-    <a href="{% url 'news:news_list' %}" class="{% if not selected %}active{% endif %}">All</a>
+<nav class="attraction-filters" aria-label="Filter by attraction">
+    <a href="{% url 'news:news_list' %}" class="pill{% if not selected %} active{% endif %}">All</a>
     {% for attraction in attractions %}
         <a href="{% url 'news:news_by_attraction' attraction.slug %}"
-           class="{% if selected and selected.slug == attraction.slug %}active{% endif %}">
+           class="pill{% if selected and selected.slug == attraction.slug %} active{% endif %}">
             {{ attraction.name }}
         </a>
     {% endfor %}
-</div>
+</nav>
 
 <ul class="article-list">
     {% for article in articles %}
-        <li>
-            <a href="{% url 'news:news_detail' article.slug %}">{{ article.title }}</a>
+    <li class="clipping article-card">
+        {% if article.image_url %}
+        <div class="clipping-photo">
+            <a href="{% url 'news:news_detail' article.slug %}">
+                <img src="{{ article.image_url }}" alt="" loading="lazy">
+            </a>
+        </div>
+        {% endif %}
+        <div class="clipping-text">
+            <p class="clipping-meta">
+                {% if article.attraction %}<span class="kicker">{{ article.attraction.name }}</span>{% endif %}
+                {% if article.created_at %}<span class="filed"> &middot; {{ article.created_at|date:"j M Y" }}</span>{% endif %}
+            </p>
+            <h3 class="clipping-headline">
+                <a href="{% url 'news:news_detail' article.slug %}">{{ article.title }}</a>
+            </h3>
             {% if article.summary %}
-                <p class="article-summary">{{ article.summary|truncatewords:22 }}</p>
+            <p class="article-summary">{{ article.summary|truncatewords:22 }}</p>
             {% endif %}
-        </li>
+            <p class="read-more"><a href="{% url 'news:news_detail' article.slug %}">Read the story &raquo;</a></p>
+        </div>
+    </li>
     {% empty %}
-        <li>No published articles yet - approve a draft in the admin!</li>
+    <li class="empty-state clipping">
+        <p class="empty-title">The presses are quiet</p>
+        <p class="empty-note">No published articles yet &mdash; approve a draft in the admin!</p>
+    </li>
     {% endfor %}
 </ul>
 
 {% if page_obj.has_other_pages %}
-<div class="pagination">
+<nav class="pagination" aria-label="Pagination">
     {% if page_obj.has_previous %}
         <a href="?page={{ page_obj.previous_page_number }}">&laquo; Newer</a>
     {% endif %}
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="page-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
         <a href="?page={{ page_obj.next_page_number }}">Older &raquo;</a>
     {% endif %}
-</div>
+</nav>
 {% endif %}
 {% endblock %}
