@@ -8,38 +8,50 @@ class LLMError(RuntimeError):
     """Raised on any LLM failure: connection refused, timeout, bad JSON."""
 
 
-def call_local_llm(prompt, *, system="", json_mode=True, timeout=600):
-    base_url = getattr(settings, "LOCAL_LLM_BASE_URL", "http://localhost:11434")
-    model = getattr(settings, "LOCAL_LLM_MODEL", "llama3.1")
+def call_local_llm(prompt, *, system="", json_mode=True, timeout=120):
+    """Call a chat model through the cloud API (Groq).
+
+    Function names stay the same on purpose: the judge and the writer
+    keep calling call_local_llm - only the phone line behind it changed.
+    """
+    api_url = getattr(settings, "LLM_API_URL", "")
+    api_key = getattr(settings, "LLM_API_KEY", "")
+    model = getattr(settings, "LLM_MODEL", "")
+
+    if not api_key:
+        raise LLMError("LLM_API_KEY is missing - add it to local_secrets.py")
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 1500,
+    }
 
     try:
-        payload = {"model": model, "prompt": prompt, "system": system, "stream": False, "think": False}
-        if json_mode:
-            payload["format"] = "json"
-        resp = requests.post(f"{base_url}/api/generate", json=payload, timeout=timeout)
-
-        if resp.status_code == 404:
-            messages = []
-            if system:
-                messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": prompt})
-            chat_payload = {"model": model, "messages": messages, "stream": False, "think": False}
-            if json_mode:
-                chat_payload["format"] = "json"
-            resp = requests.post(f"{base_url}/api/chat", json=chat_payload, timeout=timeout)
-
+        resp = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
         resp.raise_for_status()
     except requests.RequestException as exc:
-        raise LLMError(f"local LLM request failed: {exc}")
+        raise LLMError(f"LLM API request failed: {exc}")
 
-    data = resp.json()
-    text = data.get("response") or data.get("message", {}).get("content", "")
+    try:
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, ValueError) as exc:
+        raise LLMError(f"unexpected LLM API response: {exc}")
+
     if not text:
-        raise LLMError("local LLM returned an empty response")
+        raise LLMError("LLM API returned an empty response")
     return text
 
 
-def call_local_llm_json(prompt, *, system="", timeout=600):
+def call_local_llm_json(prompt, *, system="", timeout=120):
     raw = call_local_llm(prompt, system=system, json_mode=True, timeout=timeout)
     try:
         return json.loads(raw)
@@ -53,4 +65,4 @@ def call_local_llm_json(prompt, *, system="", timeout=600):
         try:
             return json.loads(cleaned.strip())
         except json.JSONDecodeError as exc:
-            raise LLMError(f"local LLM returned invalid JSON: {exc}")
+            raise LLMError(f"LLM returned invalid JSON: {exc}")

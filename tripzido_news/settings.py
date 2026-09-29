@@ -25,6 +25,16 @@ try:
 except ImportError:
     SECRET_KEY = "dev-only-insecure-key"
 
+# ---- LLM brain (Groq) ----
+try:
+    from .local_secrets import LLM_API_KEY
+except ImportError:
+    LLM_API_KEY = ""
+
+LLM_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+LLM_MODEL = "openai/gpt-oss-120b"
+
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -131,7 +141,7 @@ MAILERS = {
     },
 }
 # The AI brain - placeholder until the server LLM is ready (Phase 2)
-LOCAL_LLM_BASE_URL = "http://localhost:11434"
-LOCAL_LLM_MODEL = "qwen3.5:2b"
+LLM_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+LLM_MODEL = "openai/gpt-oss-120b"
 NEWS_AI_CONFIDENCE_THRESHOLD = 0.5
 NEWS_AUTO_PUBLISH = False
