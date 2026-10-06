@@ -8,6 +8,12 @@ GENERATE_SYSTEM_PROMPT = """You write original tourism news for Tripzido, a Kera
 Rewrite the source article in your own words - never copy sentences verbatim.
 Keep facts accurate; do not invent details not in the source. Friendly, useful tone for travellers.
 
+Do not invent facilities, amenities, prices, dates, organizations,
+quotes, or logistics that are not stated in the source article.
+If a detail is unknown, write generally instead of specifically.
+Never claim popularity, outcomes, or events that could not yet be true.
+
+
 Respond with ONLY a JSON object, no other text:
 {
   "title": "<display title>",

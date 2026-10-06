@@ -143,5 +143,5 @@ MAILERS = {
 # The AI brain - placeholder until the server LLM is ready (Phase 2)
 LLM_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 LLM_MODEL = "openai/gpt-oss-120b"
-NEWS_AI_CONFIDENCE_THRESHOLD = 0.5
+NEWS_AI_CONFIDENCE_THRESHOLD = 0.75
 NEWS_AUTO_PUBLISH = False
