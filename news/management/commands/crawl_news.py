@@ -1,9 +1,25 @@
-import re
+"""
+Fetch each source's news sitemap and save new relevant articles.
+
+Stage 1 of the Tripzido news pipeline: find the news.
+
+CHANGES IN THIS VERSION (vs the previous file):
+  1. robots_allows() normalises base_url (adds https:// if missing), so a
+     scheme-less base_url can no longer turn into the relative path
+     "/robots.txt" and silently fail.
+  2. robots_allows() is now an instance method and PRINTS the real reason on
+     every failure path. A silent `return False` is indistinguishable from a
+     genuine "disallowed" - that ambiguity cost us a debugging session.
+  3. The skip message now points at the reason printed above it.
+
+Everything else (sitemap parsing, matching, saving, CrawlRun bookkeeping) is
+unchanged from the previous version.
+"""
+import re, requests, time
 import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 from urllib import robotparser
 from urllib.parse import urljoin
-
-import requests
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError
 from django.utils import timezone
@@ -14,7 +30,37 @@ from news.models import CrawlRun, DiscoveredArticle, NewsSource, TouristAttracti
 
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 NEWS_NS = "http://www.google.com/schemas/sitemap-news/0.9"
-USER_AGENT = "TripzidoBot/1.0" 
+USER_AGENT = "TripzidoBot/1.0"
+FETCH_DELAY_SECONDS = 1
+MIN_PARAGRAPH_CHARS = 40
+
+
+def extract_article_content(url):
+    """Best-effort body text: strip the page furniture, keep the paragraphs."""
+    try:
+        response = requests.get(url, timeout=30, headers={"User-Agent": USER_AGENT})
+        response.raise_for_status()
+    except requests.RequestException as error:
+        print(f"[extract] FETCH FAILED for {url}: {type(error).__name__}: {error}")
+        return ""
+
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
+        tag.decompose()
+
+    container = soup.find("article") or soup.find(attrs={"role": "main"}) or soup
+    paragraphs = [p.get_text(" ", strip=True) for p in container.find_all("p")]
+
+    if not paragraphs:
+        print(f"[extract] NO PARAGRAPHS in container '{container.name}' for {url}")
+        return ""
+
+    kept = [p for p in paragraphs if len(p) > MIN_PARAGRAPH_CHARS]
+    print(f"[extract] {len(paragraphs)} paragraphs found, {len(kept)} kept, longest {max(len(p) for p in paragraphs)} chars")
+    return "\n\n".join(kept)
+
+
 
 
 class Command(BaseCommand):
@@ -40,7 +86,7 @@ class Command(BaseCommand):
             return 0, 0, 0
 
         if not self.robots_allows(source):
-            self.stdout.write("  robots.txt says not allowed - skipping")
+            self.stdout.write("  robots.txt check failed - skipping (reason above)")
             return 0, 0, 0
 
         try:
@@ -93,28 +139,61 @@ class Command(BaseCommand):
 
             article.matched_attractions.set(matched)
             new += 1
-            self.stdout.write(f"  NEW: {title[:70]}")
+
+            time.sleep(FETCH_DELAY_SECONDS)
+            body = extract_article_content(loc)
+            if body:
+                article.raw_content = body
+                article.save(update_fields=["raw_content"])
+                self.stdout.write(f"  NEW: {title[:70]} ({len(body)} chars)")
+            else:
+                self.stdout.write(f"  NEW: {title[:70]} (body fetch FAILED - headline only)")
+
 
         self.stdout.write(
             self.style.SUCCESS(f"  found={found} new={new} duplicates={duplicates}")
         )
         return found, new, duplicates
-    @staticmethod
-    def robots_allows(source):
+
+    def robots_allows(self, source):
+        """Check the source's robots.txt using our own User-Agent.
+
+        Never denies silently: every failure path prints WHY, because a silent
+        `return False` here is indistinguishable from a genuine refusal.
+        """
         if not source.respect_robots_txt:
             return True
+
+        base_url = (source.base_url or "").strip()
+        if not base_url:
+            self.stderr.write("  robots: source.base_url is empty - cannot check robots.txt")
+            return False
+        if not base_url.startswith(("http://", "https://")):
+            base_url = "https://" + base_url
+
+        robots_url = urljoin(base_url, "/robots.txt")
         try:
             response = requests.get(
-                urljoin(source.base_url, "/robots.txt"),
+                robots_url,
                 timeout=30,
                 headers={"User-Agent": USER_AGENT},
             )
             response.raise_for_status()
-        except requests.RequestException:
+        except requests.RequestException as error:
+            self.stderr.write(
+                f"  robots: could not read {robots_url} ({type(error).__name__}: {error}) "
+                "- failing closed"
+            )
             return False
+
         parser = robotparser.RobotFileParser()
         parser.parse(response.text.splitlines())
-        return parser.can_fetch(USER_AGENT, source.sitemap_url)
+
+        target = source.sitemap_url or base_url
+        allowed = parser.can_fetch(USER_AGENT, target)
+        if not allowed:
+            self.stderr.write(f"  robots: {robots_url} disallows {target}")
+        return allowed
 
     @staticmethod
     def find_matches(title):
