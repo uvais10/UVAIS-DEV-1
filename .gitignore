@@ -1,3 +1,4 @@
 db.sqlite3
 __pycache__/
 tripzido_news/local_secrets.py
+
